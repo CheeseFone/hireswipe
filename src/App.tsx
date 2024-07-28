@@ -7,6 +7,7 @@ import smalldots from './imgs/smalldots.jpeg';
 import pdfToText from 'react-pdftotext';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import ReactMarkdown from 'react-markdown';
+import logoImage from './imgs/logo.png';
 
 interface Decision {
   direction: string;
@@ -62,7 +63,10 @@ const HoverButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = (pr
 const Navbar: React.FC<{ activeTab: string; setActiveTab: (tab: string) => void }> = ({ activeTab, setActiveTab }) => {
   return (
     <nav style={navStyle}>
-      <div style={logoStyle}>Hireswipe</div>
+      <div style={logoStyle}>
+        <img src={logoImage} alt="Logo" style={logoImageStyle} />
+        Shwipe
+      </div>
       <ul style={tabListStyle}>
         <li><HoverButton style={tabItemStyle(activeTab === 'Swipe')} onClick={() => setActiveTab('Swipe')}>Swipe</HoverButton></li>
         <li><HoverButton style={tabItemStyle(activeTab === 'Decisions')} onClick={() => setActiveTab('Decisions')}>Decisions</HoverButton></li>
@@ -155,7 +159,7 @@ const FilesView: React.FC<{ onNewSummary: (newSummary: CardData) => void }> = ({
 
         const genAI = new GoogleGenerativeAI('AIzaSyDsCymi3MLG3G1fbIBXMnWQwWkbLV2qQFQ');
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const prompt = `Summarize this resume ${parsed} into very concise and clear bullet points. The format will be as follows: the top will be NAME - CONTACT INFORMATION (find one of either a phone number, email, fax, etc. to contact the person) followed by a brief summary of the resume. The rest of the resume will be bullet points of the resume. Also try to highlight some of the qualities and list some potential downfalls of hiring this person`;
+        const prompt = `Summarize this resume ${parsed} into very concise and clear bullet points. The format will be as follows: the top will be NAME - CONTACT INFORMATION (find one of either a phone number, email, fax, etc. to contact the person) 5 bullet points MAX (focus on keywords no complete sentances). Also try to highlight some of the qualities and list some potential downfalls of hiring this person (one point max)`;
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const Gtext = await response.text();
@@ -290,6 +294,13 @@ const keyframes =
     100% { transform: rotate(360deg); }
   }`;
 styleSheet.insertRule(keyframes, styleSheet.cssRules.length);
+
+
+const logoImageStyle: React.CSSProperties = {
+  width: '3rem',
+  height: '3rem',
+  marginRight: '0.5rem',
+};
 
 const appContainerStyle: React.CSSProperties = {
   height: '100vh',
