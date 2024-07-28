@@ -3,11 +3,16 @@ import Card from './Card';
 import leftImage from './imgs/left.png';
 import rightImage from './imgs/right.png';
 import backgroundImage from './imgs/background.png';
-import pdfToText from 'react-pdftotext'
-
+import pdfToText from 'react-pdftotext';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 interface Decision {
   direction: string;
+  description: string;
+}
+
+interface CardData {
+  id: number;
   description: string;
 }
 
@@ -32,7 +37,7 @@ const DecisionCard: React.FC<{ decision: Decision }> = ({ decision }) => {
   );
 };
 
-const SwipeView: React.FC<{ cards: any[], handleDelete: (direction: string, description: string) => void }> = ({ cards, handleDelete }) => {
+const SwipeView: React.FC<{ cards: CardData[], handleDelete: (direction: string, description: string) => void }> = ({ cards, handleDelete }) => {
   const [overlayColor, setOverlayColor] = useState<string | null>(null);
   const [leftImageSize, setLeftImageSize] = useState<number>(75);
   const [rightImageSize, setRightImageSize] = useState<number>(75);
@@ -89,7 +94,7 @@ const DecisionsView: React.FC<{ decisions: Decision[] }> = ({ decisions }) => {
   );
 };
 
-const FilesView: React.FC = () => {
+const FilesView: React.FC<{ onNewSummary: (newSummary: CardData) => void }> = ({ onNewSummary }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -102,19 +107,44 @@ const FilesView: React.FC = () => {
     }
   };
 
-  const handleUpload = useCallback(() => {
+  const handleUpload = useCallback(async () => {
     if (selectedFile) {
       const reader = new FileReader();
       reader.onload = async (e) => {
-      // Here you would typically send the text to a server for further processing
-      pdfToText(selectedFile)
-        .then(text => console.log(text))
-        .catch(error => console.error("Failed to extract text from pdf"));
+        const parsed = await pdfToText(selectedFile)
+          .then(text => text)
+          .catch(error => {
+            console.error("Failed to extract text from pdf");
+            return '';
+          });
+  
+        const genAI = new GoogleGenerativeAI('YOUR_API_KEY');
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const prompt = `Summarize this resume ${parsed} into very concise and clear bullet points. The format will be as follows: the top will be NAME - CONTACT INFORMATION (find one of either a phone number, email, fax, etc. to contact the person) followed by a brief summary of the resume. The rest of the resume will be bullet points of the resume. Also try to highlight some of the qualities and list some potential downfalls of hiring this person`;
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const Gtext = await response.text();
+  
+        // Create a JSON object to store
+        const summaryObject = {
+          id: new Date().getTime(), // Unique ID for each summary
+          summary: Gtext
+        };
+  
+        // Store summarized data in localStorage
+        const summarizedData = JSON.parse(localStorage.getItem('summarized') || '[]');
+        summarizedData.push(summaryObject);
+        localStorage.setItem('summarized', JSON.stringify(summarizedData));
+
+        // Notify parent component about the new summary
+        onNewSummary({ id: summaryObject.id, description: summaryObject.summary });
+  
+        console.log(Gtext);
       };
       reader.readAsText(selectedFile);
     }
-  }, [selectedFile]);
-
+  }, [selectedFile, onNewSummary]);
+  
   return (
     <div style={filesViewStyle}>
       <div style={fileUploadBoxStyle}>
@@ -144,16 +174,21 @@ const FilesView: React.FC = () => {
 
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Swipe');
-  const [cards, setCards] = useState([
-    { id: 1, description: "Card 1 Description" },
-    { id: 2, description: "Card 2 Description" },
-    { id: 3, description: "Card 3 Description" }
-  ]);
+  const [cards, setCards] = useState<CardData[]>([]);
   const [decisions, setDecisions] = useState<Decision[]>([]);
 
   useEffect(() => {
     const storedDecisions = JSON.parse(localStorage.getItem('cardLogs') || '[]');
     setDecisions(storedDecisions);
+
+    const storedSummarized = JSON.parse(localStorage.getItem('summarized') || '[]');
+    if (storedSummarized.length > 0) {
+      const cardsData = storedSummarized.map((item: any) => ({
+        id: item.id,
+        description: item.summary
+      }));
+      setCards(cardsData);
+    }
   }, []);
 
   const handleDelete = (direction: string, description: string) => {
@@ -161,7 +196,19 @@ const App: React.FC = () => {
     const updatedDecisions = [...decisions, cardData];
     localStorage.setItem('cardLogs', JSON.stringify(updatedDecisions));
     setDecisions(updatedDecisions);
-    setCards(cards.filter(card => card.description !== description));
+
+    // Remove the card from state
+    const updatedCards = cards.filter(card => card.description !== description);
+    setCards(updatedCards);
+
+    // Update localStorage
+    const storedSummarized = JSON.parse(localStorage.getItem('summarized') || '[]');
+    const updatedSummarized = storedSummarized.filter((item: any) => item.summary !== description);
+    localStorage.setItem('summarized', JSON.stringify(updatedSummarized));
+  };
+
+  const handleNewSummary = (newSummary: CardData) => {
+    setCards(prevCards => [...prevCards, newSummary]);
   };
 
   return (
@@ -170,7 +217,7 @@ const App: React.FC = () => {
       <div style={contentStyle}>
         {activeTab === 'Swipe' && <SwipeView cards={cards} handleDelete={handleDelete} />}
         {activeTab === 'Decisions' && <DecisionsView decisions={decisions} />}
-        {activeTab === 'Files' && <FilesView />}
+        {activeTab === 'Files' && <FilesView onNewSummary={handleNewSummary} />}
       </div>
     </div>
   );
