@@ -3,6 +3,8 @@ import Card from './Card';
 import leftImage from './imgs/left.png';
 import rightImage from './imgs/right.png';
 import backgroundImage from './imgs/background.png';
+import pdfToText from 'react-pdftotext'
+
 
 interface Decision {
   direction: string;
@@ -104,9 +106,10 @@ const FilesView: React.FC = () => {
     if (selectedFile) {
       const reader = new FileReader();
       reader.onload = async (e) => {
-        const text = e.target?.result;
-        console.log('Processed PDF content:', text);
-        // Here you would typically send the text to a server for further processing
+      // Here you would typically send the text to a server for further processing
+      pdfToText(selectedFile)
+        .then(text => console.log(text))
+        .catch(error => console.error("Failed to extract text from pdf"));
       };
       reader.readAsText(selectedFile);
     }
