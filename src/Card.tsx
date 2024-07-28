@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { User } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
 
 interface CardProps {
   description: string;
@@ -71,7 +72,7 @@ const Card: React.FC<CardProps> = ({ description, onDelete }) => {
         <User size={100} />
       </div>
       <div style={descriptionStyle}>
-        {description}
+        <ReactMarkdown>{description}</ReactMarkdown>
       </div>
     </div>
   );

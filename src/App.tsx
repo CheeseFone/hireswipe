@@ -5,6 +5,7 @@ import rightImage from './imgs/right.png';
 import backgroundImage from './imgs/background.png';
 import pdfToText from 'react-pdftotext';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import ReactMarkdown from 'react-markdown';
 
 interface Decision {
   direction: string;
@@ -15,6 +16,12 @@ interface CardData {
   id: number;
   description: string;
 }
+
+const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
+  return (
+    <ReactMarkdown>{content}</ReactMarkdown>
+  );
+};
 
 const Navbar: React.FC<{ activeTab: string; setActiveTab: (tab: string) => void }> = ({ activeTab, setActiveTab }) => {
   return (
@@ -32,7 +39,7 @@ const Navbar: React.FC<{ activeTab: string; setActiveTab: (tab: string) => void 
 const DecisionCard: React.FC<{ decision: Decision }> = ({ decision }) => {
   return (
     <div style={decisionCardStyle}>
-      <p>{decision.description}</p>
+      <MarkdownRenderer content={decision.description} />
     </div>
   );
 };
@@ -74,6 +81,7 @@ const SwipeView: React.FC<{ cards: CardData[], handleDelete: (direction: string,
     </div>
   );
 };
+
 
 const DecisionsView: React.FC<{ decisions: Decision[] }> = ({ decisions }) => {
   return (
