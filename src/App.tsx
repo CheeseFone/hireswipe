@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Card from './Card';
 import leftImage from './imgs/left.png';
 import rightImage from './imgs/right.png';
@@ -87,6 +87,58 @@ const DecisionsView: React.FC<{ decisions: Decision[] }> = ({ decisions }) => {
   );
 };
 
+const FilesView: React.FC = () => {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type === 'application/pdf') {
+      setSelectedFile(file);
+    } else {
+      alert('Please select a PDF file.');
+      event.target.value = '';
+    }
+  };
+
+  const handleUpload = useCallback(() => {
+    if (selectedFile) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const text = e.target?.result;
+        console.log('Processed PDF content:', text);
+        // Here you would typically send the text to a server for further processing
+      };
+      reader.readAsText(selectedFile);
+    }
+  }, [selectedFile]);
+
+  return (
+    <div style={filesViewStyle}>
+      <div style={fileUploadBoxStyle}>
+        <h2 style={fileUploadTitleStyle}>Upload PDF</h2>
+        <input
+          type="file"
+          accept=".pdf"
+          onChange={handleFileChange}
+          style={fileInputStyle}
+          id="file-input"
+        />
+        <label htmlFor="file-input" style={fileInputLabelStyle}>
+          Choose File
+        </label>
+        <button 
+          onClick={handleUpload} 
+          style={uploadButtonStyle}
+          disabled={!selectedFile}
+        >
+          Upload and Process
+        </button>
+        {selectedFile && <p style={selectedFileTextStyle}>Selected file: {selectedFile.name}</p>}
+      </div>
+    </div>
+  );
+};
+
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Swipe');
   const [cards, setCards] = useState([
@@ -115,7 +167,7 @@ const App: React.FC = () => {
       <div style={contentStyle}>
         {activeTab === 'Swipe' && <SwipeView cards={cards} handleDelete={handleDelete} />}
         {activeTab === 'Decisions' && <DecisionsView decisions={decisions} />}
-        {activeTab === 'Files' && <div>Files Tab Content</div>}
+        {activeTab === 'Files' && <FilesView />}
       </div>
     </div>
   );
@@ -125,7 +177,7 @@ const appContainerStyle: React.CSSProperties = {
   height: '100vh',
   display: 'flex',
   flexDirection: 'column',
-  backgroundColor: 'white',
+  backgroundColor: '#f5f5f5',
   userSelect: 'none',
   overflow: 'hidden',
 };
@@ -135,13 +187,14 @@ const navStyle: React.CSSProperties = {
   justifyContent: 'space-between',
   alignItems: 'center',
   padding: '1rem 2rem',
-  backgroundColor: '#f0f0f0',
+  backgroundColor: '#ffffff',
   boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
 };
 
 const logoStyle: React.CSSProperties = {
   fontSize: '1.5rem',
   fontWeight: 'bold',
+  color: '#007bff',
 };
 
 const tabListStyle: React.CSSProperties = {
@@ -156,8 +209,9 @@ const tabItemStyle = (isActive: boolean): React.CSSProperties => ({
   padding: '0.5rem 1rem',
   cursor: 'pointer',
   borderRadius: '4px',
-  backgroundColor: isActive ? '#e0e0e0' : 'transparent',
-  transition: 'background-color 0.3s',
+  backgroundColor: isActive ? '#e6f2ff' : 'transparent',
+  color: isActive ? '#007bff' : '#333',
+  transition: 'all 0.3s',
 });
 
 const contentStyle: React.CSSProperties = {
@@ -204,6 +258,7 @@ const decisionsViewStyle: React.CSSProperties = {
   display: 'flex',
   width: '100%',
   height: '100%',
+  backgroundColor: '#f5f5f5',
 };
 
 const columnStyle: React.CSSProperties = {
@@ -215,14 +270,73 @@ const columnStyle: React.CSSProperties = {
 const columnHeaderStyle: React.CSSProperties = {
   textAlign: 'center',
   marginBottom: '1rem',
+  color: '#007bff',
 };
 
 const decisionCardStyle: React.CSSProperties = {
-  backgroundColor: '#f0f0f0',
+  backgroundColor: '#ffffff',
   borderRadius: '8px',
   padding: '1rem',
   marginBottom: '1rem',
   boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+};
+
+const filesViewStyle: React.CSSProperties = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  justifyContent: 'center',
+  padding: '2rem',
+  width: '100%',
+  height: '100%',
+  backgroundColor: '#f5f5f5',
+};
+
+const fileUploadBoxStyle: React.CSSProperties = {
+  backgroundColor: '#ffffff',
+  borderRadius: '8px',
+  padding: '2rem',
+  boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'center',
+  width: '100%',
+  maxWidth: '400px',
+};
+
+const fileUploadTitleStyle: React.CSSProperties = {
+  color: '#007bff',
+  marginBottom: '1.5rem',
+};
+
+const fileInputStyle: React.CSSProperties = {
+  display: 'none',
+};
+
+const fileInputLabelStyle: React.CSSProperties = {
+  backgroundColor: '#e6f2ff',
+  color: '#007bff',
+  padding: '0.5rem 1rem',
+  borderRadius: '4px',
+  cursor: 'pointer',
+  marginBottom: '1rem',
+  transition: 'background-color 0.3s',
+};
+
+const uploadButtonStyle: React.CSSProperties = {
+  backgroundColor: '#007bff',
+  color: 'white',
+  padding: '0.5rem 1rem',
+  border: 'none',
+  borderRadius: '4px',
+  cursor: 'pointer',
+  fontSize: '1rem',
+  transition: 'background-color 0.3s',
+};
+
+const selectedFileTextStyle: React.CSSProperties = {
+  marginTop: '1rem',
+  color: '#666',
 };
 
 export default App;
