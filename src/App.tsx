@@ -95,56 +95,69 @@ const DecisionsView: React.FC<{ decisions: Decision[] }> = ({ decisions }) => {
 };
 
 const FilesView: React.FC<{ onNewSummary: (newSummary: CardData) => void }> = ({ onNewSummary }) => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type === 'application/pdf') {
-      setSelectedFile(file);
+    const files = event.target.files;
+    if (files) {
+      const validFiles = Array.from(files).filter(file => file.type === 'application/pdf');
+      if (validFiles.length !== files.length) {
+        alert('Please select only PDF files.');
+      }
+      setSelectedFiles(validFiles);
     } else {
       alert('Please select a PDF file.');
       event.target.value = '';
     }
   };
 
-  const handleUpload = useCallback(async () => {
-    if (selectedFile) {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const parsed = await pdfToText(selectedFile)
+  const processFile = async (file: File) => {
+    const reader = new FileReader();
+    return new Promise<void>((resolve) => {
+      reader.onload = async () => {
+        const parsed = await pdfToText(file)
           .then(text => text)
           .catch(error => {
             console.error("Failed to extract text from pdf");
             return '';
           });
   
-        const genAI = new GoogleGenerativeAI('YOUR_API_KEY');
+        const genAI = new GoogleGenerativeAI('AIzaSyDsCymi3MLG3G1fbIBXMnWQwWkbLV2qQFQ');
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const prompt = `Summarize this resume ${parsed} into very concise and clear bullet points. The format will be as follows: the top will be NAME - CONTACT INFORMATION (find one of either a phone number, email, fax, etc. to contact the person) followed by a brief summary of the resume. The rest of the resume will be bullet points of the resume. Also try to highlight some of the qualities and list some potential downfalls of hiring this person`;
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const Gtext = await response.text();
   
-        // Create a JSON object to store
         const summaryObject = {
           id: new Date().getTime(), // Unique ID for each summary
           summary: Gtext
         };
   
-        // Store summarized data in localStorage
         const summarizedData = JSON.parse(localStorage.getItem('summarized') || '[]');
         summarizedData.push(summaryObject);
         localStorage.setItem('summarized', JSON.stringify(summarizedData));
-
-        // Notify parent component about the new summary
+  
         onNewSummary({ id: summaryObject.id, description: summaryObject.summary });
-  
-        console.log(Gtext);
+        resolve();
       };
-      reader.readAsText(selectedFile);
+      reader.readAsText(file);
+    });
+  };
+
+  const handleUpload = useCallback(async () => {
+    if (selectedFiles.length > 0) {
+      setIsProcessing(true);
+      for (const file of selectedFiles) {
+        await processFile(file);
+      }
+      setIsProcessing(false);
+      setSelectedFiles([]);
+      alert('All files have been processed.');
     }
-  }, [selectedFile, onNewSummary]);
-  
+  }, [selectedFiles, onNewSummary]);
+
   return (
     <div style={filesViewStyle}>
       <div style={fileUploadBoxStyle}>
@@ -152,21 +165,24 @@ const FilesView: React.FC<{ onNewSummary: (newSummary: CardData) => void }> = ({
         <input
           type="file"
           accept=".pdf"
+          multiple
           onChange={handleFileChange}
           style={fileInputStyle}
           id="file-input"
         />
         <label htmlFor="file-input" style={fileInputLabelStyle}>
-          Choose File
+          Choose Files
         </label>
         <button 
           onClick={handleUpload} 
           style={uploadButtonStyle}
-          disabled={!selectedFile}
+          disabled={selectedFiles.length === 0 || isProcessing}
         >
           Upload and Process
         </button>
-        {selectedFile && <p style={selectedFileTextStyle}>Selected file: {selectedFile.name}</p>}
+        {selectedFiles.length > 0 && (
+          <p style={selectedFileTextStyle}>Selected files: {selectedFiles.map(file => file.name).join(', ')}</p>
+        )}
       </div>
     </div>
   );
