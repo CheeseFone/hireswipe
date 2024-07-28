@@ -3,6 +3,7 @@ import Card from './Card';
 import leftImage from './imgs/left.png';
 import rightImage from './imgs/right.png';
 import backgroundImage from './imgs/background.png';
+import smalldots from './imgs/smalldots.jpeg';
 import pdfToText from 'react-pdftotext';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import ReactMarkdown from 'react-markdown';
@@ -23,15 +24,50 @@ const MarkdownRenderer: React.FC<{ content: string }> = ({ content }) => {
   );
 };
 
+const HoverButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = (props) => {
+  const [isHover, setIsHover] = useState(false);
+  const [isClick, setIsClick] = useState(false);
+
+  const handleMouseOver = () => setIsHover(true);
+  const handleMouseOut = () => setIsHover(false);
+
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setIsClick(true);
+    setTimeout(() => setIsClick(false), 200); // Reset isClick after 200ms
+
+    if (props.onClick) {
+      props.onClick(event);
+    }
+  };
+
+  return (
+    <button
+      {...props}
+      onMouseOver={handleMouseOver}
+      onMouseOut={handleMouseOut}
+      onClick={handleClick}
+      style={{
+        ...props.style,
+        backgroundColor: isClick ? 'skyblue' : (isHover ? '#0056b3' : '#007bff'),
+        color: isClick ? 'black' : 'white',
+        borderStyle: isClick ? 'solid' : 'none',
+        borderWidth: '2px',
+      }}
+    >
+      {props.children}
+    </button>
+  );
+};
+
 const Navbar: React.FC<{ activeTab: string; setActiveTab: (tab: string) => void }> = ({ activeTab, setActiveTab }) => {
   return (
     <nav style={navStyle}>
       <div style={logoStyle}>Hireswipe</div>
       <ul style={tabListStyle}>
-        <li style={tabItemStyle(activeTab === 'Swipe')} onClick={() => setActiveTab('Swipe')}>Swipe</li>
-        <li style={tabItemStyle(activeTab === 'Decisions')} onClick={() => setActiveTab('Decisions')}>Decisions</li>
-        <li style={tabItemStyle(activeTab === 'Files')} onClick={() => setActiveTab('Files')}>Files</li>
-      </ul>
+        <li><HoverButton style={tabItemStyle(activeTab === 'Swipe')} onClick={() => setActiveTab('Swipe')}>Swipe</HoverButton></li>
+        <li><HoverButton style={tabItemStyle(activeTab === 'Decisions')} onClick={() => setActiveTab('Decisions')}>Decisions</HoverButton></li>
+        <li><HoverButton style={tabItemStyle(activeTab === 'Files')} onClick={() => setActiveTab('Files')}>Files</HoverButton></li>
+      </ul> 
     </nav>
   );
 };
@@ -171,13 +207,13 @@ const FilesView: React.FC<{ onNewSummary: (newSummary: CardData) => void }> = ({
         <label htmlFor="file-input" style={fileInputLabelStyle}>
           Choose Files
         </label>
-        <button 
+        <HoverButton 
           onClick={handleUpload} 
           style={uploadButtonStyle}
           disabled={isProcessing || selectedFiles.length === 0}
         >
           Upload and Process
-        </button>
+        </HoverButton>
         {selectedFiles.length > 0 && (
           <p style={selectedFileTextStyle}>Selected files: {selectedFiles.map(file => file.name).join(', ')}</p>
         )}
@@ -259,9 +295,12 @@ const appContainerStyle: React.CSSProperties = {
   height: '100vh',
   display: 'flex',
   flexDirection: 'column',
-  backgroundColor: '#f5f5f5',
+  backgroundColor: 'white',
   userSelect: 'none',
   overflow: 'hidden',
+  backgroundImage: `url(${smalldots})`,
+  backgroundSize: 'contain',
+  backgroundPosition: 'center',
 };
 
 const navStyle: React.CSSProperties = {
@@ -270,7 +309,7 @@ const navStyle: React.CSSProperties = {
   alignItems: 'center',
   padding: '1rem 2rem',
   backgroundColor: '#ffffff',
-  boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+  boxShadow: '0 4px 6px rgba(0,0,0,0.2)',
 };
 
 const logoStyle: React.CSSProperties = {
@@ -291,6 +330,7 @@ const tabItemStyle = (isActive: boolean): React.CSSProperties => ({
   padding: '0.5rem 1rem',
   cursor: 'pointer',
   borderRadius: '4px',
+  borderStyle: 'none',
   backgroundColor: isActive ? '#e6f2ff' : 'transparent',
   color: isActive ? '#007bff' : '#333',
   transition: 'all 0.3s',
@@ -318,6 +358,7 @@ const backgroundImageStyle: React.CSSProperties = {
   width: '1000px',
   height: '700px',
   zIndex: 0,
+
 };
 
 const overlayStyle: React.CSSProperties = {
@@ -347,6 +388,10 @@ const columnStyle: React.CSSProperties = {
   flex: 1,
   padding: '1rem',
   overflowY: 'auto',
+  backgroundImage: `url(${smalldots})`,
+  backgroundSize: 'cover',
+  backgroundPosition: 'center',
+  boxShadow: 'inset 1px 20px 50px -30px rgba(0,0,0,0.4)',
 };
 
 const columnHeaderStyle: React.CSSProperties = {
@@ -364,6 +409,9 @@ const decisionCardStyle: React.CSSProperties = {
 };
 
 const filesViewStyle: React.CSSProperties = {
+  backgroundImage: `url(${smalldots})`,
+  backgroundSize: 'contain',
+  backgroundPosition: 'center',
   display: 'flex',
   flexDirection: 'column',
   alignItems: 'center',
@@ -371,7 +419,8 @@ const filesViewStyle: React.CSSProperties = {
   padding: '2rem',
   width: '100%',
   height: '100%',
-  backgroundColor: '#f5f5f5',
+  boxShadow: 'inset 1px 8px 20px 0px rgba(0,0,0,0.2)',
+  //backgroundColor: 'red',
 };
 
 const fileUploadBoxStyle: React.CSSProperties = {
@@ -405,14 +454,15 @@ const fileInputLabelStyle: React.CSSProperties = {
   transition: 'background-color 0.3s',
 };
 
-const uploadButtonStyle: React.CSSProperties = {
-  backgroundColor: '#007bff',
-  color: 'white',
+const uploadButtonStyle = {
   padding: '0.5rem 1rem',
   border: 'none',
   borderRadius: '4px',
   cursor: 'pointer',
   fontSize: '1rem',
+  margin: '0 1rem',
+  color: 'white',
+  backgroundColor: '#007bff',
   transition: 'background-color 0.3s',
 };
 
