@@ -98,20 +98,6 @@ const FilesView: React.FC<{ onNewSummary: (newSummary: CardData) => void }> = ({
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files) {
-      const validFiles = Array.from(files).filter(file => file.type === 'application/pdf');
-      if (validFiles.length !== files.length) {
-        alert('Please select only PDF files.');
-      }
-      setSelectedFiles(validFiles);
-    } else {
-      alert('Please select a PDF file.');
-      event.target.value = '';
-    }
-  };
-
   const processFile = async (file: File) => {
     const reader = new FileReader();
     return new Promise<void>((resolve) => {
@@ -122,23 +108,23 @@ const FilesView: React.FC<{ onNewSummary: (newSummary: CardData) => void }> = ({
             console.error("Failed to extract text from pdf");
             return '';
           });
-  
+
         const genAI = new GoogleGenerativeAI('AIzaSyDsCymi3MLG3G1fbIBXMnWQwWkbLV2qQFQ');
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
         const prompt = `Summarize this resume ${parsed} into very concise and clear bullet points. The format will be as follows: the top will be NAME - CONTACT INFORMATION (find one of either a phone number, email, fax, etc. to contact the person) followed by a brief summary of the resume. The rest of the resume will be bullet points of the resume. Also try to highlight some of the qualities and list some potential downfalls of hiring this person`;
         const result = await model.generateContent(prompt);
         const response = await result.response;
         const Gtext = await response.text();
-  
+
         const summaryObject = {
           id: new Date().getTime(), // Unique ID for each summary
           summary: Gtext
         };
-  
+
         const summarizedData = JSON.parse(localStorage.getItem('summarized') || '[]');
         summarizedData.push(summaryObject);
         localStorage.setItem('summarized', JSON.stringify(summarizedData));
-  
+
         onNewSummary({ id: summaryObject.id, description: summaryObject.summary });
         resolve();
       };
@@ -154,7 +140,6 @@ const FilesView: React.FC<{ onNewSummary: (newSummary: CardData) => void }> = ({
       }
       setIsProcessing(false);
       setSelectedFiles([]);
-      alert('All files have been processed.');
     }
   }, [selectedFiles, onNewSummary]);
 
@@ -166,7 +151,12 @@ const FilesView: React.FC<{ onNewSummary: (newSummary: CardData) => void }> = ({
           type="file"
           accept=".pdf"
           multiple
-          onChange={handleFileChange}
+          onChange={(event) => {
+            const files = event.target.files;
+            if (files) {
+              setSelectedFiles(Array.from(files));
+            }
+          }}
           style={fileInputStyle}
           id="file-input"
         />
@@ -176,18 +166,18 @@ const FilesView: React.FC<{ onNewSummary: (newSummary: CardData) => void }> = ({
         <button 
           onClick={handleUpload} 
           style={uploadButtonStyle}
-          disabled={selectedFiles.length === 0 || isProcessing}
+          disabled={isProcessing || selectedFiles.length === 0}
         >
           Upload and Process
         </button>
         {selectedFiles.length > 0 && (
           <p style={selectedFileTextStyle}>Selected files: {selectedFiles.map(file => file.name).join(', ')}</p>
         )}
+        {isProcessing && <div style={spinnerStyle}></div>}
       </div>
     </div>
   );
 };
-
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Swipe');
   const [cards, setCards] = useState<CardData[]>([]);
@@ -238,6 +228,24 @@ const App: React.FC = () => {
     </div>
   );
 };
+
+const spinnerStyle: React.CSSProperties = {
+  width: '50px',
+  height: '50px',
+  border: '5px solid lightgray',
+  borderTop: '5px solid #007bff',
+  borderRadius: '50%',
+  animation: 'spin 1s linear infinite',
+};
+
+// Keyframes for spinner animation
+const styleSheet = document.styleSheets[0];
+const keyframes =
+  `@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+  }`;
+styleSheet.insertRule(keyframes, styleSheet.cssRules.length);
 
 const appContainerStyle: React.CSSProperties = {
   height: '100vh',
