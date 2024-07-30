@@ -60,7 +60,7 @@ const HoverButton: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = (pr
   );
 };
 
-const Navbar: React.FC<{ activeTab: string; setActiveTab: (tab: string) => void }> = ({ activeTab, setActiveTab }) => {
+const Navbar: React.FC<{ activeTab: string; setActiveTab: (tab: string) => void; clearStorage: () => void }> = ({ activeTab, setActiveTab, clearStorage }) => {
   return (
     <nav style={navStyle}>
       <div style={logoStyle}>
@@ -71,6 +71,7 @@ const Navbar: React.FC<{ activeTab: string; setActiveTab: (tab: string) => void 
         <li><HoverButton style={tabItemStyle(activeTab === 'Swipe')} onClick={() => setActiveTab('Swipe')}>Swipe</HoverButton></li>
         <li><HoverButton style={tabItemStyle(activeTab === 'Decisions')} onClick={() => setActiveTab('Decisions')}>Decisions</HoverButton></li>
         <li><HoverButton style={tabItemStyle(activeTab === 'Files')} onClick={() => setActiveTab('Files')}>Files</HoverButton></li>
+        <li><HoverButton style={clearButtonStyle} onClick={clearStorage}>Clear Storage</HoverButton></li>
       </ul> 
     </nav>
   );
@@ -121,7 +122,6 @@ const SwipeView: React.FC<{ cards: CardData[], handleDelete: (direction: string,
     </div>
   );
 };
-
 
 const DecisionsView: React.FC<{ decisions: Decision[] }> = ({ decisions }) => {
   return (
@@ -226,12 +226,17 @@ const FilesView: React.FC<{ onNewSummary: (newSummary: CardData) => void }> = ({
     </div>
   );
 };
+
 const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState('Swipe');
   const [cards, setCards] = useState<CardData[]>([]);
   const [decisions, setDecisions] = useState<Decision[]>([]);
 
   useEffect(() => {
+    loadFromLocalStorage();
+  }, []);
+
+  const loadFromLocalStorage = () => {
     const storedDecisions = JSON.parse(localStorage.getItem('cardLogs') || '[]');
     setDecisions(storedDecisions);
 
@@ -243,7 +248,14 @@ const App: React.FC = () => {
       }));
       setCards(cardsData);
     }
-  }, []);
+  };
+
+  const clearStorage = () => {
+    localStorage.clear();
+    setCards([]);
+    setDecisions([]);
+    alert('Local storage has been cleared.');
+  };
 
   const handleDelete = (direction: string, description: string) => {
     const cardData = { direction, description };
@@ -267,7 +279,7 @@ const App: React.FC = () => {
 
   return (
     <div style={appContainerStyle}>
-      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
+      <Navbar activeTab={activeTab} setActiveTab={setActiveTab} clearStorage={clearStorage} />
       <div style={contentStyle}>
         {activeTab === 'Swipe' && <SwipeView cards={cards} handleDelete={handleDelete} />}
         {activeTab === 'Decisions' && <DecisionsView decisions={decisions} />}
@@ -294,7 +306,6 @@ const keyframes =
     100% { transform: rotate(360deg); }
   }`;
 styleSheet.insertRule(keyframes, styleSheet.cssRules.length);
-
 
 const logoImageStyle: React.CSSProperties = {
   width: '3rem',
@@ -369,7 +380,6 @@ const backgroundImageStyle: React.CSSProperties = {
   width: '1000px',
   height: '700px',
   zIndex: 0,
-
 };
 
 const overlayStyle: React.CSSProperties = {
@@ -431,7 +441,6 @@ const filesViewStyle: React.CSSProperties = {
   width: '100%',
   height: '100%',
   boxShadow: 'inset 1px 8px 20px 0px rgba(0,0,0,0.2)',
-  //backgroundColor: 'red',
 };
 
 const fileUploadBoxStyle: React.CSSProperties = {
@@ -480,6 +489,12 @@ const uploadButtonStyle = {
 const selectedFileTextStyle: React.CSSProperties = {
   marginTop: '1rem',
   color: '#666',
+};
+
+const clearButtonStyle: React.CSSProperties = {
+  ...tabItemStyle(false),
+  backgroundColor: '#dc3545',
+  color: 'white',
 };
 
 export default App;
